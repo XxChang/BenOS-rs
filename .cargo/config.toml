@@ -1,0 +1,32 @@
+[build]
+target = "aarch64-unknown-none"
+
+[target.aarch64-unknown-none]
+runner = [
+    "sh",
+    "-c",
+    '''
+kernel="$1"
+gdb_args=""
+
+case "$kernel" in
+    */debug/*) gdb_args="-s -S" ;;
+esac
+
+exec qemu-system-aarch64 \
+    -M raspi4b \
+    -cpu cortex-a72 \
+    -serial mon:stdio \
+    -display none \
+    $gdb_args \
+    -kernel "$kernel"
+''',
+    "--",
+]
+
+rustflags = [
+    "-C",
+    "linker=rust-lld",
+    "-C",
+    "link-arg=-Tlinker.ld",
+]

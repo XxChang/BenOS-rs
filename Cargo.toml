@@ -1,0 +1,12 @@
+[package]
+name = "benos"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+panic-halt = "1.0.0"
+tock-registers = "0.10.1"
+
+[[bin]]
+name = "benos"
+harness = false
