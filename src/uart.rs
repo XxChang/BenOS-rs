@@ -5,7 +5,10 @@ use tock_registers::{
 };
 
 // PL011 UART0 base address (QEMU raspi4b / BCM2711)
+#[cfg(target_board = "raspi4b")]
 const PL011_BASE: usize = 0xFE20_1000;
+#[cfg(target_board = "versatilepb")]
+const PL011_BASE: usize = 0x101F_1000;
 
 register_bitfields! [
     u32,

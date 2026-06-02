@@ -1,5 +1,41 @@
 [build]
-target = "aarch64-unknown-none"
+target = "armv7a-none-eabi"
+
+[target.armv7a-none-eabi]
+runner = [
+    "sh",
+    "-c",
+    '''
+    kernel="$1"
+    gdb_args=""
+    display="${QEMU_DISPLAY:-cocoa}"
+
+    if [ "${QEMU_GDB:-0}" = "1" ]; then
+        gdb_args="-s -S"
+    fi
+
+    export QEMU_AUDIO_DRV=none
+
+    exec qemu-system-arm \
+        -M versatilepb \
+        -cpu cortex-a8 \
+        -m 128M \
+        -serial mon:stdio \
+        -display "$display" \
+        $gdb_args \
+        -kernel "$kernel"
+    ''',
+    "--",
+]
+
+rustflags = [
+    "-C",
+    "linker=rust-lld",
+    "-C",
+    "link-arg=-Tlinker.ld",
+    "--cfg",
+    "target_board=\"versatilepb\"",
+]
 
 [target.aarch64-unknown-none]
 runner = [
@@ -29,4 +65,6 @@ rustflags = [
     "linker=rust-lld",
     "-C",
     "link-arg=-Tlinker.ld",
+    "--cfg",
+    "target_board=\"raspi4b\"",
 ]

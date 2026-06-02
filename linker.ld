@@ -1,5 +1,9 @@
 ENTRY(_start)
 
+/* FIXME: 0x80000 is a Raspberry Pi-style load address. For VersatilePB,
+ * 0x10000 is the usual bare-metal base unless QEMU loads this ELF by its
+ * program headers.
+ */
 KERNEL_BASE = 0x80000;
 
 SECTIONS

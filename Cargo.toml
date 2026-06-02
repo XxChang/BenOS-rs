@@ -7,6 +7,9 @@ edition = "2024"
 panic-halt = "1.0.0"
 tock-registers = "0.10.1"
 
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_board, values("raspi4b", "versatilepb"))'] }
+
 [[bin]]
 name = "benos"
 harness = false
