@@ -1,0 +1,89 @@
+module(
+    name = "benos",
+    version = "0.0.0",
+)
+
+bazel_dep(name = "platforms", version = "1.1.0")
+bazel_dep(name = "rules_kconfig", version = "0.0.1")
+bazel_dep(name = "rules_python", version = "1.7.0")
+bazel_dep(name = "rules_rust", version = "0.73.0")
+bazel_dep(name = "rules_shell", version = "0.6.1")
+
+python = use_extension("@rules_python//python/extensions:python.bzl", "python")
+python.toolchain(python_version = "3.12")
+use_repo(python, "python_3_12_host")
+
+kconfig = use_extension("@rules_kconfig//kconfig:extensions.bzl", "kconfig")
+kconfig.repo(
+    name = "benos_kconfig",
+    kconfig = "//:Kconfig",
+    interpreter = "@python_3_12_host//:python",
+)
+use_repo(kconfig, "benos_kconfig")
+
+rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
+rust.toolchain(
+    edition = "2024",
+    versions = ["1.97.1"],
+)
+
+# armv7a-none-eabi is neither in DEFAULT_EXTRA_TARGET_TRIPLES nor derivable by
+# rules_rust's triple_to_constraint_set (its CPU map knows "armv7", not
+# "armv7a"), so the toolchain and its constraints are spelled out by hand.
+# One block per triple — mirrors TRIPLES in //boards:boards.bzl.
+rust.repository_set(
+    name = "rust_armv7a",
+    edition = "2024",
+    exec_triple = "aarch64-apple-darwin",
+    target_compatible_with = [
+        "@platforms//cpu:armv7",
+        "@platforms//os:none",
+    ],
+    target_triple = "armv7a-none-eabi",
+    versions = ["1.97.1"],
+)
+
+rust.repository_set(
+    name = "rust_aarch64_none",
+    edition = "2024",
+    exec_triple = "aarch64-apple-darwin",
+    target_compatible_with = [
+        "@platforms//cpu:aarch64",
+        "@platforms//os:none",
+    ],
+    target_triple = "aarch64-unknown-none",
+    versions = ["1.97.1"],
+)
+
+use_repo(rust, "rust_toolchains")
+register_toolchains("@rust_toolchains//:all")
+
+crate = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
+crate.spec(
+    package = "panic-halt",
+    version = "1.0.0",
+)
+crate.spec(
+    package = "tock-registers",
+    version = "0.10.1",
+)
+
+# Bare-metal triples are unknown to rules_rust, so its own
+# //rust/platform:{triple} config_settings do not exist for them. Point the
+# generated select()s at ours instead. The `@@` prefix is required: the
+# template is expanded inside each crate's own repository, where a bare `//`
+# would not resolve to the main repo.
+crate.render_config(
+    platforms_template = "@@//platforms/settings:{triple}",
+)
+
+crate.from_specs(
+    # Must mirror TRIPLES in //boards:boards.bzl — MODULE.bazel is restricted
+    # Starlark and cannot load() that table.
+    supported_platform_triples = [
+        "aarch64-apple-darwin",
+        "aarch64-unknown-none",
+        "armv7a-none-eabi",
+    ],
+)
+use_repo(crate, "crates")
