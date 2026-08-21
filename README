@@ -1,0 +1,109 @@
+# BenOS-rs
+
+A small bare-metal ARM kernel written in Rust (`no_std` / `no_main`) and built
+with Bazel. It boots on QEMU today, prints over the PL011 UART, and echoes back
+whatever you type.
+
+Its point is the build: a board is described in exactly one place
+(`//boards:boards.bzl`) and everything downstream — the target platform, the
+crate_universe config settings, the arch-specific boot code, the kernel ELF and
+the QEMU launcher — is generated from that table.
+
+## Supported boards
+
+| Board         | Triple                 | Arch boot code | QEMU machine                          |
+| ------------- | ---------------------- | -------------- | ------------------------------------- |
+| `versatilepb` | `armv7a-none-eabi`     | `//arch/arm`   | `qemu-system-arm -M versatilepb`      |
+| `raspi4b`     | `aarch64-unknown-none` | `//arch/arm64` | `qemu-system-aarch64 -M raspi4b`      |
+
+A board entry without a `qemu = ...` field is build-only: it still produces an
+ELF, it just gets no launcher.
+
+## Requirements
+
+- [Bazel](https://bazel.build) (bzlmod; see `MODULE.bazel`) — Bazelisk works fine
+- QEMU (`qemu-system-arm`, `qemu-system-aarch64`) for running the images
+- Nothing else: the Rust 1.97.1 toolchains, the bare-metal targets, Python and
+  the crates are all fetched by Bazel
+
+The `exec_triple` in `MODULE.bazel` is currently pinned to
+`aarch64-apple-darwin`, so building on another host means adding the matching
+`rust.repository_set` blocks.
+
+## Build and run
+
+```sh
+# Cross-compile one board's kernel ELF
+bazel build //kernel:versatilepb
+
+# Every board at once
+bazel build //kernel/...
+
+# Boot it in QEMU (serial is wired to stdio; Ctrl-A X to quit)
+bazel run //kernel:versatilepb.run
+bazel run //kernel:raspi4b.run
+```
+
+Extra QEMU flags can be appended after `--`:
+
+```sh
+bazel run //kernel:raspi4b.run -- -d int
+```
+
+Two environment variables are honoured by the launcher
+(`//tools:qemu_runner.sh`):
+
+- `QEMU_DISPLAY` — overrides the board's `-display` value (default `none`)
+- `QEMU_GDB=1` — adds `-s -S`, so QEMU waits for a debugger on `tcp::1234`
+
+```sh
+QEMU_GDB=1 bazel run //kernel:versatilepb.run
+# in another shell
+gdb-multiarch bazel-bin/kernel/versatilepb -ex 'target remote :1234'
+```
+
+## Layout
+
+```
+arch/arm, arch/arm64   Pre-kernel_main boot code (head.S) per triple.
+                       Both export crate name `arch`, so kernel/boot.rs
+                       uses the same `use arch as _;` for every board.
+boards/                boards.bzl — the board/triple tables — plus the
+                       per-board linker scripts.
+kernel/                boot.rs (kernel_main) and the PL011 UART driver.
+platforms/             platform() targets, one per triple.
+platforms/settings/    config_setting() targets crate_universe selects on.
+tools/                 kernel_image macro and the QEMU runner script.
+Kconfig                Kconfig root, wired up via rules_kconfig (skeleton).
+```
+
+Board identity does not travel through Bazel constraints. `kernel_image` bakes
+it in as `--cfg target_board="<board>"`, and passes a `--check-cfg` listing every
+legal value, so a typo in `#[cfg(target_board = "...")]` is a compile error
+rather than a silently dropped branch. That is how `kernel/uart.rs` picks its
+PL011 base address.
+
+## Adding a board
+
+1. Add a linker script under `boards/`.
+2. Add an entry to `BOARDS` in [boards/boards.bzl](boards/boards.bzl), naming
+   its triple, linker script, and optionally its QEMU config.
+3. If the triple is new, add it to `TRIPLES` in the same file, add an arch
+   package supplying `head.S`, and mirror the triple into the
+   `rust.repository_set` / `supported_platform_triples` lists in
+   [MODULE.bazel](MODULE.bazel). (MODULE.bazel is restricted Starlark and
+   cannot `load()` boards.bzl, so that one duplication is unavoidable.)
+
+`//kernel:<board>`, `//kernel:<board>.run`, `//platforms:<triple>` and
+`//platforms/settings:<triple>` all appear automatically.
+
+## Status
+
+Early. What works: boot, bss zeroing, stack setup, `kernel_main`, PL011 UART
+in/out. There is no interrupt handling, MMU setup, scheduler or allocator yet,
+and the `versatilepb` linker script still uses a Raspberry Pi-style
+`KERNEL_BASE` (see the FIXME in [boards/versatilepb.ld](boards/versatilepb.ld)).
+
+## License
+
+Apache License 2.0 — see [LICENSE](LICENSE).
