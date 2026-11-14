@@ -2,23 +2,20 @@
 
 Adding a board is one entry in `BOARDS` plus its linker script. Everything
 downstream — the `platform()` targets, the `config_setting()`s crate_universe
-keys its `select()`s on, the arch package the kernel links against, the kernel
-ELF, the QEMU launcher — is generated from these two tables.
+keys its `select()`s on, the kernel ELF, and the QEMU launcher — is generated
+from these two tables.
 """
 
-def _triple(constraints, arch = None):
+def _triple(constraints):
     """Describes one rust target triple.
 
     Args:
         constraints: the constraint_values that identify this triple, used for
             both its `platform()` and its `config_setting()`.
-        arch: label of the arch package supplying boot code (`head.S`) for this
-            triple, or `None` for triples no board targets.
-
     Returns:
         A struct for the `TRIPLES` table.
     """
-    return struct(constraints = constraints, arch = arch)
+    return struct(constraints = constraints)
 
 # Triple -> definition.
 #
@@ -34,17 +31,15 @@ TRIPLES = {
             "@platforms//cpu:armv7",
             "@platforms//os:none",
         ],
-        arch = "//arch/arm",
     ),
     "aarch64-unknown-none": _triple(
         constraints = [
             "@platforms//cpu:aarch64",
             "@platforms//os:none",
         ],
-        arch = "//arch/arm64",
     ),
     # The host. Present so crate_universe can resolve build scripts and proc
-    # macros; no board targets it, so it needs no arch package.
+    # macros; no board targets it.
     "aarch64-apple-darwin": _triple(
         constraints = [
             "@platforms//cpu:aarch64",
@@ -91,8 +86,6 @@ def _board(triple, linker_script, qemu = None):
     """
     if triple not in TRIPLES:
         fail("unknown triple '{}' — add it to TRIPLES first".format(triple))
-    if TRIPLES[triple].arch == None:
-        fail("triple '{}' has no arch package, so it cannot boot a board".format(triple))
     return struct(
         triple = triple,
         linker_script = linker_script,

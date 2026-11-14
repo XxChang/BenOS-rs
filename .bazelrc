@@ -1,0 +1,1 @@
+common --repo_env=CC=/usr/bin/clang

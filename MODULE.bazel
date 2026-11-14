@@ -67,6 +67,14 @@ crate.spec(
     package = "tock-registers",
     version = "0.10.1",
 )
+crate.spec(
+    package = "aarch32-cpu",
+    version = "0.4.0",
+)
+crate.spec(
+    package = "aarch64-cpu",
+    version = "11.2.0",
+)
 
 # Bare-metal triples are unknown to rules_rust, so its own
 # //rust/platform:{triple} config_settings do not exist for them. Point the
@@ -78,6 +86,9 @@ crate.render_config(
 )
 
 crate.from_specs(
+    # Keep dependency resolution independent of each developer's ~/.cargo
+    # configuration while using a registry mirror reachable in China.
+    cargo_config = "//:.cargo/config.toml",
     # Must mirror TRIPLES in //boards:boards.bzl — MODULE.bazel is restricted
     # Starlark and cannot load() that table.
     supported_platform_triples = [

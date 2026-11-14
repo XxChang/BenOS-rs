@@ -5,9 +5,6 @@
 # symlink as a symlink rather than a directory, so `/bazel-*/` would miss them.
 /bazel-*
 
-# Bazel lock/state files generated locally
-MODULE.bazel.lock
-
 # =========================
 # Rust tool artifacts
 # =========================
@@ -21,3 +18,5 @@ MODULE.bazel.lock
 .idea/
 .DS_Store
 .claude/
+.nvim.lua
+.rules_rust_analyzer

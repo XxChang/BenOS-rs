@@ -13,8 +13,8 @@ the QEMU launcher — is generated from that table.
 
 | Board         | Triple                 | Arch boot code | QEMU machine                          |
 | ------------- | ---------------------- | -------------- | ------------------------------------- |
-| `versatilepb` | `armv7a-none-eabi`     | `//arch/arm`   | `qemu-system-arm -M versatilepb`      |
-| `raspi4b`     | `aarch64-unknown-none` | `//arch/arm64` | `qemu-system-aarch64 -M raspi4b`      |
+| `versatilepb` | `armv7a-none-eabi`     | `//arch`       | `qemu-system-arm -M versatilepb`      |
+| `raspi4b`     | `aarch64-unknown-none` | `//arch`       | `qemu-system-aarch64 -M raspi4b`      |
 
 A board entry without a `qemu = ...` field is build-only: it still produces an
 ELF, it just gets no launcher.
@@ -65,9 +65,9 @@ gdb-multiarch bazel-bin/kernel/versatilepb -ex 'target remote :1234'
 ## Layout
 
 ```
-arch/arm, arch/arm64   Pre-kernel_main boot code (head.S) per triple.
-                       Both export crate name `arch`, so kernel/boot.rs
-                       uses the same `use arch as _;` for every board.
+arch/                   Architecture crate; target_arch selects arm or arm64 boot code.
+                        It exports crate name `arch`, so kernel/boot.rs uses
+                        the same `use arch as _;` for every board.
 boards/                boards.bzl — the board/triple tables — plus the
                        per-board linker scripts.
 kernel/                boot.rs (kernel_main) and the PL011 UART driver.

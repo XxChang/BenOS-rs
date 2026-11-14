@@ -2,7 +2,7 @@
 
 load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 load("@rules_rust//rust:defs.bzl", "rust_binary")
-load("//boards:boards.bzl", "BOARDS", "TRIPLES")
+load("//boards:boards.bzl", "BOARDS")
 
 # Every legal `target_board` value, so rustc flags typos in
 # `#[cfg(target_board = "...")]` instead of silently compiling the branch out.
@@ -44,10 +44,9 @@ def kernel_image(name, srcs, crate_root, deps = [], rustc_flags = []):
             '--cfg=target_board="{}"'.format(name),
             _CHECK_CFG,
         ] + rustc_flags,
-        # The arch package carries head.S. Which one is a plain table lookup —
-        # the board's triple is known here at macro expansion, so this needs no
-        # select() and no arch constraint.
-        deps = deps + [TRIPLES[board.triple].arch],
+        # //arch uses rustc's built-in target_arch cfg to select the matching
+        # boot implementation and head.S for this target platform.
+        deps = deps + ["//arch"],
     )
 
     if board.qemu == None:
