@@ -1,6 +1,8 @@
 #![no_std]
 #![no_main]
 
+use core::fmt::Write;
+
 mod uart;
 
 // Pulls in `_start` and friends from the arch package //tools:kernel.bzl picked
@@ -11,7 +13,7 @@ use panic_halt as _;
 
 #[unsafe(no_mangle)]
 pub extern "C" fn kernel_main() {
-    let uart = unsafe { uart::Uart::new() };
+    let mut uart = unsafe { uart::Uart::new() };
     uart.init();
     uart.puts("Welcome BenOS!\n");
     loop {

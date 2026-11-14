@@ -1,3 +1,5 @@
+use core::fmt;
+
 use tock_registers::{
     interfaces::{Readable, Writeable},
     register_bitfields, register_structs,
@@ -135,5 +137,12 @@ impl Uart {
             }
             self.putc(b);
         }
+    }
+}
+
+impl fmt::Write for Uart {
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        self.puts(s);
+        Ok(())
     }
 }
